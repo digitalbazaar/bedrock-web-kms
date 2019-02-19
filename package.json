@@ -1,0 +1,34 @@
+{
+  "name": "bedrock-web-kms",
+  "version": "0.0.1-0",
+  "description": "Web app APIs for Bedrock Key Management",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "bedrock-web-store": "^1.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/digitalbazaar/bedrock-web-kms"
+  },
+  "keywords": [
+    "bedrock"
+  ],
+  "author": {
+    "name": "Digital Bazaar, Inc.",
+    "email": "support@digitalbazaar.com",
+    "url": "https://digitalbazaar.com"
+  },
+  "bugs": {
+    "url": "https://github.com/digitalbazaar/bedrock-web-kms/issues"
+  },
+  "homepage": "https://github.com/digitalbazaar/bedrock-web-kms",
+  "bedrock": {
+    "browserDependencies": "all",
+    "manifest": {
+      "axios": {
+        "main": "dist/axios.min.js"
+      }
+    }
+  }
+}

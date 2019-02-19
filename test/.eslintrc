@@ -1,0 +1,11 @@
+{
+  "env": {
+    "mocha": true
+  },
+  "globals": {
+    "assertNoError": true,
+    "should": true,
+    "expect": true,
+    "CryptoKey": true
+  }
+}
