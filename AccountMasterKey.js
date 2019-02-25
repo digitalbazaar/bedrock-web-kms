@@ -103,20 +103,20 @@ export class AccountMasterKey {
       wrappedCek = await kmsService.wrapKey({plugin, key: cek, keyId, signer});
     }
 
+    const cipher = (version === 'fips') ? fipsCipher : recommendedCipher;
+
     // create shared protected header as additional authenticated data (aad)
+    const enc = cipher.JWE_ENC;
     const protected = base64url(JSON.stringify({enc}));
     const additionalData = _strToUint8Array(protected);
 
     // encrypt data
-    const cipher = (version === 'fips') ? fipsCipher : recommendedCipher;
-    const {enc, ciphertext, iv, tag} = cipher.encrypt(
-      {data, additionalData, cek});
+    const {ciphertext, iv, tag} = cipher.encrypt({data, additionalData, cek});
 
     // represent encrypted data as JWE
     const header = {
       // TODO: add `ECDH-ES+A256KW` support for asymmetric key wrap
       alg: 'A256KW',
-      enc,
       kid: kekId
     };
     const jwe = {
@@ -201,7 +201,7 @@ export class AccountMasterKey {
     const cek = await kmsService.unwrap({plugin, wrappedKey, kekId, signer});
 
     const additionalData = _strToUint8Array(jwe.protected);
-    return cipher.decrypt({enc, ciphertext, iv, tag, additionalData, cek});
+    return cipher.decrypt({ciphertext, iv, tag, additionalData, cek});
   }
 
   /**

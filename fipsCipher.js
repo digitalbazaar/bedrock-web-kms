@@ -3,6 +3,8 @@
  */
 'use strict';
 
+export const JWE_ENC = 'A256GCM';
+
 /**
  * Generates a content encryption key (CEK). The 256-bit key is intended to be
  * used as an AES-GCM key.
@@ -26,7 +28,7 @@ export async function generateKey() {
  * @param {Uint8Array} additionalData optional additional authentication data.
  * @param {Uint8Array|CryptoKey} the content encryption key to use.
  *
- * @return {Promise<Object>} resolves to `{enc, ciphertext, iv, tag}`.
+ * @return {Promise<Object>} resolves to `{ciphertext, iv, tag}`.
  */
 export async function encrypt({data, additionalData, cek}) {
   cek = _importCek({cek, usages: ['encrypt']});
@@ -47,7 +49,6 @@ export async function encrypt({data, additionalData, cek}) {
   const tag = encrypted.subarray(encrypted.length - tagBytes);
 
   return {
-    enc: 'A256GCM',
     ciphertext,
     iv,
     tag
@@ -58,7 +59,6 @@ export async function encrypt({data, additionalData, cek}) {
  * Decrypts some encrypted data. The data must have been encrypted using
  * the given 256-bit AES-GCM content encryption key.
  *
- * @param {String} enc the encryption algorithm.
  * @param {Uint8Array} ciphertext the data to decrypt.
  * @param {Uint8Array} iv the initialization vector.
  * @param {Uint8Array} tag the authentication tag.
@@ -67,10 +67,7 @@ export async function encrypt({data, additionalData, cek}) {
  *
  * @return {Promise<Uint8Array>} the decrypted data.
  */
-export async function decrypt({enc, ciphertext, iv, tag, additionalData, cek}) {
-  if(enc !== 'A256GCM') {
-    throw new Error(`Invalid or unsupported algorithm "${enc}".`);
-  }
+export async function decrypt({ciphertext, iv, tag, additionalData, cek}) {
   if(!(iv instanceof Uint8Array)) {
     throw new Error('Invalid or missing "iv".');
   }

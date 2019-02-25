@@ -7,6 +7,8 @@ import {Ed25519KeyPair} from 'crypto-ld';
 // TODO: replace with forge once available?
 import {secretbox} from 'tweetnacl';
 
+export const JWE_ENC = 'XS20P';
+
 /**
  * Generates a content encryption key (CEK). The 256-bit key is intended to be
  * used as a SecretBox (aka XSalsa20-Poly1305) key.
@@ -26,7 +28,7 @@ export async function generateKey() {
  * @param {Uint8Array} additionalData optional additional authentication data.
  * @param {Uint8Array} the content encryption key to use.
  *
- * @return {Promise<Object>} resolves to `{enc, ciphertext, iv, tag}`.
+ * @return {Promise<Object>} resolves to `{ciphertext, iv, tag}`.
  */
 export async function encrypt({data, additionalData, cek}) {
   if(!(data instanceof Uint8Array)) {
@@ -47,7 +49,6 @@ export async function encrypt({data, additionalData, cek}) {
   const tag = encrypted.subarray(encrypted.length - tagBytes);
 
   return {
-    enc: 'XS20P',
     ciphertext,
     iv,
     tag
@@ -58,7 +59,6 @@ export async function encrypt({data, additionalData, cek}) {
  * Decrypts some encrypted data. The data must have been encrypted using
  * the given SecretBox (aka XSalsa20-Poly1305) content encryption key (CEK).
  *
- * @param {String} enc the encryption algorithm.
  * @param {Uint8Array} ciphertext the data to decrypt.
  * @param {Uint8Array} iv the initialization vector (aka nonce).
  * @param {Uint8Array} tag the authentication tag.
@@ -67,10 +67,7 @@ export async function encrypt({data, additionalData, cek}) {
  *
  * @return {Promise<Uint8Array>} the decrypted data.
  */
-export async function decrypt({enc, ciphertext, iv, tag, additionalData, cek}) {
-  if(enc !== 'XS20P') {
-    throw new Error(`Invalid or unsupported algorithm "${enc}".`);
-  }
+export async function decrypt({ciphertext, iv, tag, additionalData, cek}) {
   if(!(iv instanceof Uint8Array)) {
     throw new Error('Invalid or missing "iv".');
   }
