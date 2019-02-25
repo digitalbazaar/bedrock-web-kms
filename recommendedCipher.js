@@ -10,7 +10,7 @@ import {ChaCha20Poly1305, KEY_LENGTH} from '@stablelib/chacha20poly1305';
 
 /**
  * Generates a content encryption key (CEK). The 256-bit key is intended to be
- * used as a ChaCha20Poly1305 (RFC7539) key.
+ * used as a ChaCha20Poly1305 (RFC8439) key.
  *
  * @return {Promise<Uint8Array>} resolves to the generated key.
  */
@@ -21,7 +21,7 @@ export async function generateKey() {
 
 /**
  * Encrypts some data. The data will be encrypted using the given 256-bit
- * ChaCha20Poly1305 (RFC7539) content encryption key (CEK).
+ * ChaCha20Poly1305 (RFC8439) content encryption key (CEK).
  *
  * @param {Uint8Array} data the data to encrypt.
  * @param {Uint8Array} additionalData optional additional authentication data.
@@ -61,7 +61,7 @@ export async function encrypt({data, additionalData, cek}) {
 
 /**
  * Decrypts some encrypted data. The data must have been encrypted using
- * the given ChaCha20Poly1305 (RFC7539) content encryption key (CEK).
+ * the given ChaCha20Poly1305 (RFC8439) content encryption key (CEK).
  *
  * @param {String} enc the encryption algorithm.
  * @param {Uint8Array} ciphertext the data to decrypt.
