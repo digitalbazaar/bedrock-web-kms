@@ -3,6 +3,7 @@
  */
 'use strict';
 
+import {Ed25519KeyPair} from 'crypto-ld';
 import * as base64url from 'base64-universal';
 import * as fipsCipher from './fipsCipher.js';
 import * as recommendedCipher from './recommendedCipher.js';
@@ -15,10 +16,12 @@ export class AccountMasterKey {
    * be called directly. Use one of these methods to create an AccountMasterKey
    * instance:
    *
-   * `AccountMasterKey.fromPassword`
+   * `AccountMasterKey.fromSecret`
    * `AccountMasterKey.fromBiometric`
    * `AccountMasterKey.fromFido`
    *
+   * @param {String} accountId the ID of the account associated with this
+   *   master key.
    * @param {Object} signer an API for creating digital signatures using the
    *   master authentication key.
    * @param {KmsService} kmsService the kmsService to use to perform key
@@ -27,7 +30,8 @@ export class AccountMasterKey {
    *
    * @return {AccountMasterKey}.
    */
-  constructor({signer, kmsService, kmsPlugin}) {
+  constructor({accountId, signer, kmsService, kmsPlugin}) {
+    this.accountId = accountId;
     this.signer = signer;
     this.kmsService = kmsService;
     this.kmsPlugin = kmsPlugin;
@@ -218,35 +222,44 @@ export class AccountMasterKey {
     return JSON.parse(new TextDecoder().decode(data));
   }
 
-  // TODO: move HMAC-based indexing to data hub and implement `fromPassword`
-
   /**
-   * Blinds the given String or Uint8Array of data using an HMAC key that is
-   * derived from the master HMAC key.
+   * Generates a the master key from a secret.
    *
-   * @param data the String or Uint8Array of data to blind.
-   *
-   * @return a Promise that resolves to a base64url-encoded HMAC signature.
-   */
-  async blind({data}) {
-    data = _strToUint8Array(data);
-    const signature = new Uint8Array(
-      await crypto.subtle.sign('HMAC', this.hmac, data));
-    return base64url.encode(signature);
-  }
-
-  /**
-   * Generates a the master key from a password.
-   *
-   * @param {String} password the password to use.
+   * @param {String|Uint8Array} secret the secret to use (e.g. a bcrypt hash).
+   * @param {String} accountId the ID of the account associated with this
+   *   master key.
+   * @param {KmsService} kmsService the kmsService to use to perform key
+   *   operations.
+   * @param {String} kmsPlugin the ID of the KMS plugin to use.
    *
    * @return {Promise<AccountMasterKey>} the new AccountMasterKey instance.
    */
-  async fromPassword({password, salt}) {
-    // TODO: need to handle from a bcrypt token and from a password+salt?
+  static async fromSecret({secret, accountId, kmsService, kmsPlugin}) {
+    if(typeof secret === 'string') {
+      secret = _strToUint8Array(secret);
+    } else if(!(secret instanceof Uint8Array)) {
+      throw new TypeError('"secret" must be a Uint8Array or a string.');
+    }
+
+    // prefix secret and compute a SHA-256 hash as the seed for the key
+    const prefix = _strToUint8Array(`bedrock-web-kms:${accountId}:`);
+    const data = new Uint8Array(prefix.length + secret.length);
+    data.set(prefix);
+    data.set(secret, prefix.length);
+    const seed = crypto.subtle.digest('SHA-256', data);
+
+    // generate Ed25519 key from seed
+    const keyPair = await Ed25519KeyPair.generate({seed});
+    const signer = keyPair.signer();
+
+    return new AccountMasterKey({accountId, signer, kmsService, kmsPlugin});
   }
 
-  async fromBiometric() {
+  static async fromBiometric() {
+    throw new Error('Not implemented.');
+  }
+
+  static async fromFido() {
     throw new Error('Not implemented.');
   }
 }
