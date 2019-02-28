@@ -4,9 +4,8 @@
 'use strict';
 
 import {Ed25519KeyPair} from 'crypto-ld';
-import * as base64url from 'base64-universal';
-import * as fipsCipher from './fipsCipher.js';
-import * as recommendedCipher from './recommendedCipher.js';
+import {Kek} from './Kek.js';
+import {Hmac} from './Hmac.js';
 
 const VERSIONS = ['recommended', 'fips'];
 
@@ -46,180 +45,57 @@ export class AccountMasterKey {
    * @param {String} version `fips` to use FIPS-compliant ciphers,
    *   `recommended` to use the latest recommended ciphers.
    *
-   * @return {Promise<String>} resolves to the identifier for the new key.
+   * @return {Promise<Object>} resolves to a Kek or Hmac instance.
    */
-  generateKey({type, version = 'recommended'}) {
+  async generateKey({type, version = 'recommended'}) {
     _assertVersion(version);
 
     // for the time being, fips and recommended are the same; there is no
     // other standardized key wrapping algorithm
+    let Class;
     if(type === 'hmac') {
       type = 'HS256';
+      Class = Hmac;
     } else if(type === 'kek') {
       type = 'AES-KW';
+      Class = Kek;
     } else {
       throw new Error(`Unknown key type "${type}".`);
     }
 
-    const {kmsService, kmsPlugin: plugin, signer} = this;
-    return kmsService.generateKey({plugin, type, signer});
+    const {kmsService, kmsPlugin, kmsPlugin: plugin, signer} = this;
+    const id = await kmsService.generateKey({plugin, type, signer});
+    return new Class({id, kmsService, kmsPlugin, signer});
   }
 
   /**
-   * Encrypts some data. The data can be encrypted using a FIPS-compliant
-   * cipher or the latest recommended cipher. If a wrapped content encryption
-   * key (CEK) is given, it will be first unwrapped using a key encryption key
-   * (KEK) identified by `kekId` via a KMS service. If a CEK is not given, a
-   * random one will be generated and wrapped by the KEK.
+   * Gets a KEK API for wrapping and unwrapping cryptographic keys. The key
+   * ID is presumed to be scoped to the KMS service and plugin assigned
+   * to this account master key instance.
    *
-   * @param {Uint8Array|String} data the data to encrypt.
-   * @param {String} kekId the ID of the wrapping key to use.
-   * @param {String} wrappedCek an optional base64url-encoded CEK.
-   * @param {String} version `fips` to use FIPS-compliant ciphers, `recommended`
-   *   to use the latest recommended ciphers.
+   * @param {String} id the ID of the KEK.
    *
-   * @return {Promise<Object>} resolves to a JWE.
+   * @return {Promise<Kek>} the new Kek instance.
    */
-  async encrypt({data, kekId, wrappedCek, version = 'recommended'}) {
-    _assertVersion(version);
-    data = _strToUint8Array(data);
-    const {kmsService, kmsPlugin: plugin, signer} = this;
-
-    // if a wrapped CEK was given, unwrap and reuse it, otherwise generate one
-    let cek;
-    if(wrappedCek) {
-      if(typeof wrappedCek !== 'string') {
-        throw new TypeError('"wrappedCek" must be a string.');
-      }
-      // unwrap CEK via KmsService
-      cek = await kmsService.unwrap({plugin, wrappedKey, kekId, signer});
-    } else if(version === 'fips') {
-      // generate a FIPS-compliant CEK
-      cek = await fipsCipher.generateKey();
-    } else {
-      // generate a recommended CEK
-      cek = await recommendedCipher.generateKey();
-    }
-
-    if(!wrappedCek) {
-      // TODO: allow key wrapping for other known keys if `ECDH-ES+A256KW` is
-      // supported for asymmetric key wrap
-      wrappedCek = await kmsService.wrapKey({plugin, key: cek, keyId, signer});
-    }
-
-    const cipher = (version === 'fips') ? fipsCipher : recommendedCipher;
-
-    // create shared protected header as additional authenticated data (aad)
-    const enc = cipher.JWE_ENC;
-    const protected = base64url(JSON.stringify({enc}));
-    const additionalData = _strToUint8Array(protected);
-
-    // encrypt data
-    const {ciphertext, iv, tag} = cipher.encrypt({data, additionalData, cek});
-
-    // represent encrypted data as JWE
-    const header = {
-      // TODO: add `ECDH-ES+A256KW` support for asymmetric key wrap
-      alg: 'A256KW',
-      kid: kekId
-    };
-    const jwe = {
-      protected,
-      recipients: [{
-        header,
-        encrypted_key: wrappedCek
-      },
-      iv: base64url.encode(iv),
-      ciphertext: base64url.encode(ciphertext),
-      tag: base64url.encode(tag)
-    };
-    return jwe;
+  async getKek({id}) {
+    const {kmsService, kmsPlugin, signer} = this;
+    // FIXME: call kmsService.exists()? ...get algorithm?
+    return new Kek({id, kmsService, kmsPlugin, signer});
   }
 
   /**
-   * Encrypts an object. The object will be serialized to JSON and passed
-   * to `encrypt`. See `encrypt` for other parameters.
+   * Gets an HMAC API for signing and verifying cryptographic keys. The key
+   * ID is presumed to be scoped to the KMS service and plugin assigned
+   * to this account master key instance.
    *
-   * @param {Object} obj the object to encrypt.
+   * @param {String} id the ID of the HMAC key.
    *
-   * @return {Promise<Object>} resolves to a JWE.
+   * @return {Promise<Hmac>} the new Hmac instance.
    */
-  async encryptObject({obj, ...rest}) {
-    return this.encrypt({data: JSON.stringify(obj), ...rest});
-  }
-
-  /**
-   * Decrypts a JWE. The only JWEs currently supported use an `alg` of `A256KW`
-   * and `enc` of `A256GCM` or `C20P`. These parameters refer to data that has
-   * been encrypted using a 256-bit AES-GCM or ChaCha20Poly1305 content
-   * encryption key CEK that has been wrapped using a 256-bit AES-KW key
-   * encryption key KEK.
-   *
-   * @param {Object} jwe the JWE to decrypt.
-   * @param {String} kekId the ID of the KEK to use to decrypt.
-   *
-   * @return {Promise<Uint8Array>} resolves to the decrypted data.
-   */
-  async decrypt({jwe, kekId}) {
-    if(!(jwe && typeof jwe === 'object')) {
-      throw new TypeError('"jwe" must be an object.');
-    }
-    if(typeof jwe.protected !== 'string')) {
-      throw new TypeError('"jwe.protected" is missing or not a string.');
-    }
-
-    // validate encrypted data params
-    if(typeof jwe.iv !== 'string') {
-      throw new Error('Invalid or missing "iv".');
-    }
-    if(typeof jwe.ciphertext !== 'string') {
-      throw new Error('Invalid or missing "ciphertext".');
-    }
-    if(typeof jwe.tag !== 'string') {
-      throw new Error('Invalid or missing "tag".');
-    }
-
-    // find header for kekId
-    if(!Array.isArray(jwe.recipients)) {
-      throw new TypeError('"jwe.recipients" must be an array.');
-    }
-    const {header, encrypted_key: wrappedKey} = jwe.recipients.find(
-      e => e.header && e.header.kid === kekId);
-
-    // validate header
-    if(!(header && typeof header === 'object' &&
-      typeof header.kid === 'string' && header.alg === 'A256KW' &&
-      (header.enc === 'A256GCM' || header.enc === 'C20P'))) {
-      throw new Error('Invalid or unsupported JWE header.');
-    }
-    if(typeof wrappedKey !== 'string') {
-      throw new Error('Invalid or missing "encrypted_key".');
-    }
-
-    const {enc} = header;
-    const cipher = (header.enc === 'A256GCM') ? fipsCipher : recommendedCipher;
-    const {kmsService, kmsPlugin: plugin, signer} = this;
-
-    // unwrap CEK via KmsService
-    const kekId = header.kid;
-    const cek = await kmsService.unwrap({plugin, wrappedKey, kekId, signer});
-
-    const additionalData = _strToUint8Array(jwe.protected);
-    return cipher.decrypt({ciphertext, iv, tag, additionalData, cek});
-  }
-
-  /**
-   * Decrypts a JWE that must contain an encrypted object. This method will
-   * call `decrypt` and then `JSON.parse` the resulting decrypted UTF-8 data.
-   *
-   * @param {Object} jwe the JWE to decrypt.
-   * @param {String} kekId the ID of the KEK to use to decrypt.
-   *
-   * @return {Promise<Object>} resolves to the decrypted object.
-   */
-  async decryptObject({jwe, kekId}) {
-    const data = await this.decrypt({jwe});
-    return JSON.parse(new TextDecoder().decode(data));
+  async getHmac({id}) {
+    const {kmsService, kmsPlugin, signer} = this;
+    // FIXME: call kmsService.exists()? ...get algorithm?
+    return new Hmac({id, kmsService, kmsPlugin, signer});
   }
 
   /**
@@ -246,11 +122,14 @@ export class AccountMasterKey {
     const data = new Uint8Array(prefix.length + secret.length);
     data.set(prefix);
     data.set(secret, prefix.length);
-    const seed = crypto.subtle.digest('SHA-256', data);
+    const seed = new Uint8Array(await crypto.subtle.digest('SHA-256', data));
 
     // generate Ed25519 key from seed
     const keyPair = await Ed25519KeyPair.generate({seed});
+
+    // create signer and specify ID for key using fingerprint
     const signer = keyPair.signer();
+    signer.id = `urn:bedrock-web-kms:key:${keyPair.fingerprint()}`;
 
     return new AccountMasterKey({accountId, signer, kmsService, kmsPlugin});
   }
@@ -279,7 +158,7 @@ function _assertVersion(version) {
   if(typeof version !== 'string') {
     throw new TypeError('"version" must be a string.');
   }
-  if(!VERSIONS.contains(version)) {
+  if(!VERSIONS.includes(version)) {
     throw new Error(`Unsupported version "${version}"`);
   }
 }

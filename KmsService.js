@@ -4,7 +4,7 @@
 'use strict';
 
 import axios from 'axios';
-import * as base64url from 'base64-universal';
+import * as base64url from 'base64url-universal';
 import {createAuthzHeader, createSignatureString} from 'http-signature-header';
 
 export class KmsService {
@@ -33,7 +33,7 @@ export class KmsService {
     _assert(type, 'type', 'string');
     _assert(id, 'id', 'string');
     _assert(signer, 'signer', 'object');
-    return _postOperation({
+    return this._postOperation({
       method: 'generateKey',
       parameters: {type, id},
       plugin,
@@ -60,9 +60,9 @@ export class KmsService {
     if(key instanceof Uint8Array) {
       key = base64url.encode(key);
     }
-    return _postOperation({
+    return this._postOperation({
       method: 'wrapKey',
-      parameters: {key: encodedKey, kekId},
+      parameters: {encodedKey: key, kekId},
       plugin,
       signer
     });
@@ -84,7 +84,7 @@ export class KmsService {
     _assert(wrappedKey, 'wrappedKey', 'string');
     _assert(kekId, 'kekId', 'string');
     _assert(signer, 'signer', 'object');
-    return _postOperation({
+    return this._postOperation({
       method: 'unwrapKey',
       parameters: {wrappedKey, kekId},
       plugin,
@@ -115,7 +115,7 @@ export class KmsService {
     if(data instanceof Uint8Array) {
       data = base64url.encode(data);
     }
-    return _postOperation({
+    return this._postOperation({
       method: 'sign',
       parameters: {keyId, data},
       plugin,
@@ -147,7 +147,7 @@ export class KmsService {
     if(data instanceof Uint8Array) {
       data = base64url.encode(data);
     }
-    return _postOperation({
+    return this._postOperation({
       method: 'verify',
       parameters: {keyId, data, signature},
       plugin,
@@ -166,8 +166,8 @@ export class KmsService {
    * @return {Promise<Boolean>} true on success, false on failure.
    */
   async _postOperation({method, parameters, plugin, signer}) {
-    const response = await _signedAxios({
-      url: this.urls.operations,
+    const response = await this._signedAxios({
+      url: this.config.urls.operations,
       method: 'POST',
       data: {
         method,
@@ -179,26 +179,14 @@ export class KmsService {
     return response.data;
   }
 
-  async _assert(variable, name, types) {
-    if(!Array.isArray(types)) {
-      types = [types];
-    }
-    const type = type instanceof Uint8Array ? 'Uint8Array' : typeof variable;
-    if(!types.contains(type)) {
-      throw new TypeError(
-        `"${name}" must be ${types.length > 1 ? 'a' : 'one of'} ` +
-        `${types.join(', ')}.`);
-    }
-  }
-
   async _signedAxios({signer, ...requestOptions}) {
-    if(!(headers in requestOptions)) {
+    if(!('headers' in requestOptions)) {
       requestOptions.headers = {};
     }
     if(requestOptions.url.startsWith('/')) {
       requestOptions.url = `${window.location.origin}${requestOptions.url}`;
     }
-    await _signHttp({signer, requestOptions});
+    await this._signHttp({signer, requestOptions});
     return axios(requestOptions);
   }
 
@@ -209,12 +197,11 @@ export class KmsService {
 
     // sign header
     const includeHeaders = ['expires', 'host', '(request-target)'];
-    const plaintext = httpSignatureHeader.createSignatureString(
-      {includeHeaders, requestOptions});
+    const plaintext = createSignatureString({includeHeaders, requestOptions});
     const data = new TextEncoder().encode(plaintext);
-    const signature = await signer.sign({data});
+    const signature = base64url.encode(await signer.sign({data}));
 
-    const authzHeader = httpSignatureHeader.createAuthzHeader({
+    const authzHeader = createAuthzHeader({
       includeHeaders,
       keyId: signer.id,
       signature
@@ -222,4 +209,16 @@ export class KmsService {
 
     requestOptions.headers.Authorization = authzHeader;
   }
-};
+}
+
+async function _assert(variable, name, types) {
+  if(!Array.isArray(types)) {
+    types = [types];
+  }
+  const type = variable instanceof Uint8Array ? 'Uint8Array' : typeof variable;
+  if(!types.includes(type)) {
+    throw new TypeError(
+      `"${name}" must be ${types.length > 1 ? 'a' : 'one of'} ` +
+      `${types.join(', ')}.`);
+  }
+}
