@@ -26,7 +26,7 @@ export class KmsService {
    * @param {Object} an API with an `id` property and a `sign` function for
    *   authentication purposes.
    *
-   * @return {Promise<String>} the ID for the key.
+   * @return {Promise<Object>} an object with the `id` for the key.
    */
   async generateKey({plugin, type, id, signer}) {
     _assert(plugin, 'plugin', 'string');
