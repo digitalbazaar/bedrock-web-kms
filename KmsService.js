@@ -26,19 +26,20 @@ export class KmsService {
    * @param {Object} an API with an `id` property and a `sign` function for
    *   authentication purposes.
    *
-   * @return {Promise<Object>} an object with the `id` for the key.
+   * @return {Promise<String>} the ID for the key.
    */
   async generateKey({plugin, type, id, signer}) {
     _assert(plugin, 'plugin', 'string');
     _assert(type, 'type', 'string');
     _assert(id, 'id', 'string');
     _assert(signer, 'signer', 'object');
-    return this._postOperation({
+    const {id: newId} = await this._postOperation({
       method: 'generateKey',
       parameters: {type, id},
       plugin,
       signer
     });
+    return newId;
   }
 
   /**
@@ -60,12 +61,13 @@ export class KmsService {
     if(key instanceof Uint8Array) {
       key = base64url.encode(key);
     }
-    return this._postOperation({
+    const {wrappedKey} = await this._postOperation({
       method: 'wrapKey',
       parameters: {key, kekId},
       plugin,
       signer
     });
+    return wrappedKey;
   }
 
   /**
@@ -84,12 +86,13 @@ export class KmsService {
     _assert(wrappedKey, 'wrappedKey', 'string');
     _assert(kekId, 'kekId', 'string');
     _assert(signer, 'signer', 'object');
-    return this._postOperation({
+    const {key} = await this._postOperation({
       method: 'unwrapKey',
       parameters: {wrappedKey, kekId},
       plugin,
       signer
     });
+    return key;
   }
 
   /**
@@ -115,12 +118,13 @@ export class KmsService {
     if(data instanceof Uint8Array) {
       data = base64url.encode(data);
     }
-    return this._postOperation({
+    const {signature} = await this._postOperation({
       method: 'sign',
       parameters: {keyId, data},
       plugin,
       signer
     });
+    return signature;
   }
 
   /**
@@ -147,12 +151,13 @@ export class KmsService {
     if(data instanceof Uint8Array) {
       data = base64url.encode(data);
     }
-    return this._postOperation({
+    const {verified} = await this._postOperation({
       method: 'verify',
       parameters: {keyId, data, signature},
       plugin,
       signer
     });
+    return verified;
   }
 
   /**

@@ -64,7 +64,7 @@ export class AccountMasterKey {
     }
 
     const {kmsService, kmsPlugin, kmsPlugin: plugin, signer} = this;
-    const {id} = await kmsService.generateKey({plugin, type, signer});
+    const id = await kmsService.generateKey({plugin, type, signer});
     return new Class({id, kmsService, kmsPlugin, signer});
   }
 
