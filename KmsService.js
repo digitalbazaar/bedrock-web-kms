@@ -186,6 +186,7 @@ export class KmsService {
     if(requestOptions.url.startsWith('/')) {
       requestOptions.url = `${window.location.origin}${requestOptions.url}`;
     }
+    requestOptions.headers.host = new URL(requestOptions.url).host;
     await this._signHttp({signer, requestOptions});
     return axios(requestOptions);
   }
