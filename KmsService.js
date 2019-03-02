@@ -62,7 +62,7 @@ export class KmsService {
     }
     return this._postOperation({
       method: 'wrapKey',
-      parameters: {encodedKey: key, kekId},
+      parameters: {key, kekId},
       plugin,
       signer
     });
