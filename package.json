@@ -8,7 +8,7 @@
     "base64url-universal": "^1.0.0",
     "bedrock-web-store": "^1.1.1",
     "crypto-ld": "^3.4.0",
-    "http-signature-header": "github:digitalbazaar/http-signature-header#add-browser-support",
+    "http-signature-header": "^1.2.0",
     "tweetnacl": "^1.0.1"
   },
   "repository": {
