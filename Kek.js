@@ -44,7 +44,7 @@ export class Kek {
    * @param {String} wrappedKey the wrapped key material as a base64url-encoded
    *   string.
    *
-   * @return {Promise<String>} the base64url-encoded wrapped key bytes.
+   * @return {Promise<Uint8Array>} the key bytes.
    */
   async unwrap({wrappedKey}) {
     const {id: kekId, kmsService, kmsPlugin: plugin, signer} = this;

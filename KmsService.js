@@ -79,7 +79,7 @@ export class KmsService {
    * @param {String} kekId the ID of the unwrapping key to use.
    * @param {Object} an API with a `sign` function for authentication purposes.
    *
-   * @return {Promise<String>} the base64url-encoded wrapped key bytes.
+   * @return {Promise<Uint8Array>} the key bytes.
    */
   async unwrapKey({plugin, wrappedKey, kekId, signer}) {
     _assert(plugin, 'plugin', 'string');
@@ -92,7 +92,7 @@ export class KmsService {
       plugin,
       signer
     });
-    return key;
+    return base64url.decode(key);
   }
 
   /**
