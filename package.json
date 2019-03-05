@@ -32,6 +32,26 @@
     "manifest": {
       "axios": {
         "main": "dist/axios.min.js"
+      },
+      "base64url-universal": {
+        "bedrock": {
+          "browserDependencies": []
+        }
+      },
+      "crypto-ld": {
+        "bedrock": {
+          "browserDependencies": [
+            "base64url-universal",
+            "node-forge"
+          ]
+        },
+        "browser": "lib/index.js"
+      },
+      "http-signature-header": {
+        "bedrock": {
+          "browserDependencies": []
+        },
+        "browser": "lib/index.js"
       }
     }
   }
