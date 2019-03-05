@@ -31,7 +31,9 @@ export class KmsService {
   async generateKey({plugin, type, id, signer}) {
     _assert(plugin, 'plugin', 'string');
     _assert(type, 'type', 'string');
-    _assert(id, 'id', 'string');
+    if(id !== undefined) {
+      _assert(id, 'id', 'string');
+    }
     _assert(signer, 'signer', 'object');
     const {id: newId} = await this._postOperation({
       method: 'generateKey',
