@@ -36,7 +36,8 @@
       "base64url-universal": {
         "bedrock": {
           "browserDependencies": []
-        }
+        },
+        "browser": "lib/browser.js"
       },
       "crypto-ld": {
         "bedrock": {
@@ -52,6 +53,28 @@
           "browserDependencies": []
         },
         "browser": "lib/index.js"
+      }
+    },
+    "systemjs": {
+      "packages": {
+        "http-signature-header": {
+          "main": "lib/index.js",
+          "defaultExtension": "js",
+          "map": {
+            "assert-plus": "@empty",
+            "url": "@empty"
+          }
+        },
+        "crypto-ld": {
+          "main": "lib/index.js",
+          "defaultExtension": "js",
+          "map": {
+            "bs58": "@empty",
+            "crypto": "@empty",
+            "sodium-native": "@empty",
+            "util": "@empty"
+          }
+        }
       }
     }
   }
