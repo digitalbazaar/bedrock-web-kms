@@ -3,7 +3,8 @@
  */
 'use strict';
 
-import {Ed25519KeyPair} from 'crypto-ld';
+import cryptoLd from 'crypto-ld';
+const {Ed25519KeyPair} = cryptoLd;
 import {Kek} from './Kek.js';
 import {Hmac} from './Hmac.js';
 

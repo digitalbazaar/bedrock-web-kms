@@ -4,8 +4,9 @@
 'use strict';
 
 import axios from 'axios';
-import * as base64url from 'base64url-universal';
-import {createAuthzHeader, createSignatureString} from 'http-signature-header';
+import base64url from 'base64url-universal';
+import httpSignatureHeader from 'http-signature-header';
+const {createAuthzHeader, createSignatureString} = httpSignatureHeader;
 
 export class KmsService {
   constructor({
