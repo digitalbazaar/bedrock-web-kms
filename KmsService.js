@@ -46,8 +46,7 @@ export class KmsService {
    * Wraps a cryptographic key using a key encryption key (KEK).
    *
    * @param {String} plugin the KMS plugin to use.
-   * @param {Uint8Array|String} key the key material as a Uint8Array
-   *   or a base64url-encoded string.
+   * @param {Uint8Array} key the key material as a Uint8Array.
    * @param {String} kekId the ID of the wrapping key to use.
    * @param {Object} an API with a `sign` function for authentication purposes.
    *
@@ -55,12 +54,10 @@ export class KmsService {
    */
   async wrapKey({plugin, key, kekId, signer}) {
     _assert(plugin, 'plugin', 'string');
-    _assert(key, 'key', ['Uint8Array', 'string']);
+    _assert(key, 'key', 'Uint8Array');
     _assert(kekId, 'kekId', 'string');
     _assert(signer, 'signer', 'object');
-    if(key instanceof Uint8Array) {
-      key = base64url.encode(key);
-    }
+    key = base64url.encode(key);
     const {wrappedKey} = await this._postOperation({
       method: 'wrapKey',
       parameters: {key, kekId},
@@ -103,8 +100,7 @@ export class KmsService {
    *
    * @param {String} plugin the KMS plugin to use.
    * @param {String} keyId the ID of the signing key to use.
-   * @param {Uint8Array|String} data the data to sign as a Uint8Array
-   *   or a base64url-encoded string.
+   * @param {Uint8Array} data the data to sign as a Uint8Array.
    * @param {Object} an API with a `sign` function for authentication purposes;
    *   this is not used to sign the data itself.
    *
@@ -113,11 +109,9 @@ export class KmsService {
   async sign({plugin, keyId, data, signer}) {
     _assert(plugin, 'plugin', 'string');
     _assert(keyId, 'keyId', 'string');
-    _assert(data, 'data', ['Uint8Array', 'string']);
+    _assert(data, 'data', 'Uint8Array');
     _assert(signer, 'signer', 'object');
-    if(data instanceof Uint8Array) {
-      data = base64url.encode(data);
-    }
+    data = base64url.encode(data);
     const {signature} = await this._postOperation({
       method: 'sign',
       parameters: {keyId, data},
@@ -135,8 +129,7 @@ export class KmsService {
    *
    * @param {String} plugin the KMS plugin to use.
    * @param {String} keyId the ID of the signing key to use.
-   * @param {Uint8Array|String} data the data to sign as a Uint8Array
-   *   or a base64url-encoded string.
+   * @param {Uint8Array} data the data to sign as a Uint8Array.
    * @param {String} signature the base64url-encoded signature to verify.
    * @param {Object} an API with a `sign` function for authentication purposes.
    *
@@ -145,12 +138,10 @@ export class KmsService {
   async verify({plugin, keyId, data, signature, signer}) {
     _assert(plugin, 'plugin', 'string');
     _assert(keyId, 'keyId', 'string');
-    _assert(data, 'data', ['Uint8Array', 'string']);
+    _assert(data, 'data', 'Uint8Array');
     _assert(signature, 'signature', 'string');
     _assert(signer, 'signer', 'object');
-    if(data instanceof Uint8Array) {
-      data = base64url.encode(data);
-    }
+    data = base64url.encode(data);
     const {verified} = await this._postOperation({
       method: 'verify',
       parameters: {keyId, data, signature},

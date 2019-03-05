@@ -28,8 +28,7 @@ export class Kek {
   /**
    * Wraps a cryptographic key.
    *
-   * @param {Uint8Array|String} key the key material as a Uint8Array
-   *   or a base64url-encoded string.
+   * @param {Uint8Array} key the key material as a Uint8Array.
    *
    * @return {Promise<String>} the base64url-encoded wrapped key bytes.
    */

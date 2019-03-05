@@ -31,8 +31,7 @@ export class Hmac {
    * hashing the data first may present interoperability issues so choose
    * wisely.
    *
-   * @param {Uint8Array|String} data the data to sign as a Uint8Array
-   *   or a base64url-encoded string.
+   * @param {Uint8Array} data the data to sign as a Uint8Array.
    *
    * @return {Promise<String>} the base64url-encoded signature.
    */
@@ -47,8 +46,7 @@ export class Hmac {
    * hashing the data first may present interoperability issues so choose
    * wisely.
    *
-   * @param {Uint8Array|String} data the data to sign as a Uint8Array
-   *   or a base64url-encoded string.
+   * @param {Uint8Array} data the data to sign as a Uint8Array.
    * @param {String} signature the base64url-encoded signature to verify.
    *
    * @return {Promise<Boolean>} `true` if verified, `false` if not.
