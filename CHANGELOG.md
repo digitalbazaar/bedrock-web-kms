@@ -1,6 +1,6 @@
 # bedrock-web-kms ChangeLog
 
-## 1.0.1 - 2019-03-xx
+## 1.0.1 - 2019-03-08
 
 ### Fixed
 - Clear `host` header after signing HTTP request as the browser
