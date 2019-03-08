@@ -187,6 +187,8 @@ export class KmsService {
     }
     requestOptions.headers.host = new URL(requestOptions.url).host;
     await this._signHttp({signer, requestOptions});
+    // remove `host` header as it will be automatically set by the browser
+    delete requestOptions.headers.host;
     return axios(requestOptions);
   }
 
