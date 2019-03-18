@@ -7,8 +7,10 @@ import cryptoLd from 'crypto-ld';
 const {Ed25519KeyPair} = cryptoLd;
 import {Kek} from './Kek.js';
 import {Hmac} from './Hmac.js';
+import {SeedCache} from './SeedCache.js';
 
 const VERSIONS = ['recommended', 'fips'];
+const _seedCache = new SeedCache();
 
 export class AccountMasterKey {
   /**
@@ -17,6 +19,7 @@ export class AccountMasterKey {
    * instance:
    *
    * `AccountMasterKey.fromSecret`
+   * `AccountMasterKey.fromCache`
    * `AccountMasterKey.fromBiometric`
    * `AccountMasterKey.fromFido`
    *
@@ -100,7 +103,7 @@ export class AccountMasterKey {
   }
 
   /**
-   * Generates a the master key from a secret.
+   * Generates a master key from a secret.
    *
    * @param {String|Uint8Array} secret the secret to use (e.g. a bcrypt hash).
    * @param {String} accountId the ID of the account associated with this
@@ -108,10 +111,14 @@ export class AccountMasterKey {
    * @param {KmsService} kmsService the kmsService to use to perform key
    *   operations.
    * @param {String} kmsPlugin the ID of the KMS plugin to use.
+   * @param {boolean} [cache=true] `true` to cache the key, `false` not to; a
+   *   cached key must be cleared via `clearCache` or it will persist until
+   *   the user clears their local website storage.
    *
    * @return {Promise<AccountMasterKey>} the new AccountMasterKey instance.
    */
-  static async fromSecret({secret, accountId, kmsService, kmsPlugin}) {
+  static async fromSecret(
+    {secret, accountId, kmsService, kmsPlugin, cache = true}) {
     if(typeof secret === 'string') {
       secret = _strToUint8Array(secret);
     } else if(!(secret instanceof Uint8Array)) {
@@ -125,13 +132,41 @@ export class AccountMasterKey {
     data.set(secret, prefix.length);
     const seed = new Uint8Array(await crypto.subtle.digest('SHA-256', data));
 
-    // generate Ed25519 key from seed
-    const keyPair = await Ed25519KeyPair.generate({seed});
+    // cache seed if requested
+    if(cache) {
+      await _seedCache.set({accountId, seed});
+    }
 
-    // create signer and specify ID for key using fingerprint
-    const signer = keyPair.signer();
-    signer.id = `urn:bedrock-web-kms:key:${keyPair.fingerprint()}`;
+    const signer = await _signerFromSeed({seed});
+    return new AccountMasterKey({accountId, signer, kmsService, kmsPlugin});
+  }
 
+  /**
+   * Loads a master key from local website cache if available. This method will
+   * only work if the master key for the given account has been previously
+   * cached. To clear this master key to prevent future loading, call
+   * `clearCache` with the account ID.
+   *
+   * @param {String} accountId the ID of the account associated with this
+   *   master key.
+   * @param {KmsService} kmsService the kmsService to use to perform key
+   *   operations.
+   * @param {String} kmsPlugin the ID of the KMS plugin to use.
+   *
+   * @return {Promise<AccountMasterKey|null>} the new AccountMasterKey instance
+   *   or `null` if no cached key for `accountId` could be loaded.
+   */
+  static async fromCache({accountId, kmsService, kmsPlugin}) {
+    if(typeof localStorage === 'undefined') {
+      return null;
+    }
+
+    const seed = await _seedCache.get({accountId});
+    if(!seed) {
+      return null;
+    }
+
+    const signer = await _signerFromSeed({seed});
     return new AccountMasterKey({accountId, signer, kmsService, kmsPlugin});
   }
 
@@ -141,6 +176,20 @@ export class AccountMasterKey {
 
   static async fromFido() {
     throw new Error('Not implemented.');
+  }
+
+  /**
+   * Clears this key from any caches. This must be called for keys created
+   * via `fromSecret` with `cache` set to `true` in order to ensure the key
+   * cannot be loaded via `fromCache`.
+   *
+   * @param {String} accountId the ID of the account associated with this
+   *   master key.
+   *
+   * @return {Promise<undefined>} resolves once the operation completes.
+   */
+  static async clearCache({accountId}) {
+    await _seedCache.remove({accountId});
   }
 }
 
@@ -162,4 +211,14 @@ function _assertVersion(version) {
   if(!VERSIONS.includes(version)) {
     throw new Error(`Unsupported version "${version}"`);
   }
+}
+
+async function _signerFromSeed({seed}) {
+  // generate Ed25519 key from seed
+  const keyPair = await Ed25519KeyPair.generate({seed});
+
+  // create signer and specify ID for key using fingerprint
+  const signer = keyPair.signer();
+  signer.id = `urn:bedrock-web-kms:key:${keyPair.fingerprint()}`;
+  return signer;
 }

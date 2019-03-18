@@ -1,6 +1,7 @@
 {
   "globals": {
     "crypto": true,
+    "localStorage": true,
     "window": true,
     "TextDecoder": true,
     "TextEncoder": true,
