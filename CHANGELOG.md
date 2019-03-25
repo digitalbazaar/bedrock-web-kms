@@ -1,6 +1,6 @@
 # bedrock-web-kms ChangeLog
 
-## 1.1.0 - 2019-03-xx
+## 1.1.0 - 2019-03-25
 
 ### Added
 - Enable caching of `AccountMasterKey` seed.
