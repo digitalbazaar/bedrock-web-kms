@@ -8,8 +8,10 @@
     "base64url-universal": "^1.0.0",
     "bedrock-web-store": "^1.1.1",
     "crypto-ld": "^3.4.0",
-    "http-signature-header": "^1.2.0",
-    "tweetnacl": "^1.0.1"
+    "jsonld-signatures": "^4.0.0",
+    "ocapld": "^1.1.0",
+    "tweetnacl": "^1.0.1",
+    "uuid-random": "^1.0.7"
   },
   "repository": {
     "type": "git",
@@ -48,23 +50,18 @@
         },
         "browser": "lib/index.js"
       },
-      "http-signature-header": {
-        "bedrock": {
-          "browserDependencies": []
-        },
-        "browser": "lib/index.js"
+      "jsonld": {
+        "main": "dist/jsonld.js"
+      },
+      "jsonld-signatures": {
+        "main": "dist/jsonld-signatures.js"
+      },
+      "ocapld": {
+        "main": "dist/ocapld.js"
       }
     },
     "systemjs": {
       "packages": {
-        "http-signature-header": {
-          "main": "lib/index.js",
-          "defaultExtension": "js",
-          "map": {
-            "assert-plus": "@empty",
-            "url": "@empty"
-          }
-        },
         "crypto-ld": {
           "main": "lib/index.js",
           "defaultExtension": "js",

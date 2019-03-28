@@ -58,18 +58,18 @@ export class AccountMasterKey {
     // other standardized key wrapping algorithm
     let Class;
     if(type === 'hmac') {
-      type = 'HS256';
+      type = 'Sha256HmacKey';
       Class = Hmac;
     } else if(type === 'kek') {
-      type = 'AES-KW';
+      type = 'AesKeyWrappingKey2019';
       Class = Kek;
     } else {
       throw new Error(`Unknown key type "${type}".`);
     }
 
-    const {kmsService, kmsPlugin, kmsPlugin: plugin, signer} = this;
+    const {kmsService, kmsPlugin: plugin, signer} = this;
     const id = await kmsService.generateKey({plugin, type, signer});
-    return new Class({id, kmsService, kmsPlugin, signer});
+    return new Class({id, kmsService, signer});
   }
 
   /**
@@ -82,9 +82,9 @@ export class AccountMasterKey {
    * @return {Promise<Kek>} the new Kek instance.
    */
   async getKek({id}) {
-    const {kmsService, kmsPlugin, signer} = this;
-    // FIXME: call kmsService.exists()? ...get algorithm?
-    return new Kek({id, kmsService, kmsPlugin, signer});
+    const {kmsService, signer} = this;
+    // FIXME: call kmsService.getKeyDescription()? ...get key `type`?
+    return new Kek({id, kmsService, signer});
   }
 
   /**
@@ -97,9 +97,9 @@ export class AccountMasterKey {
    * @return {Promise<Hmac>} the new Hmac instance.
    */
   async getHmac({id}) {
-    const {kmsService, kmsPlugin, signer} = this;
-    // FIXME: call kmsService.exists()? ...get algorithm?
-    return new Hmac({id, kmsService, kmsPlugin, signer});
+    const {kmsService, signer} = this;
+    // FIXME: call kmsService.getKeyDescription()? ...get key `type`?
+    return new Hmac({id, kmsService, signer});
   }
 
   /**

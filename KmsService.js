@@ -5,14 +5,17 @@
 
 import axios from 'axios';
 import base64url from 'base64url-universal';
-import httpSignatureHeader from 'http-signature-header';
-const {createAuthzHeader, createSignatureString} = httpSignatureHeader;
+import {CapabilityInvocation} from 'ocapld';
+import jsigs from 'jsonld-signatures';
+import uuid from 'uuid-random';
+
+const {SECURITY_CONTEXT_V2_URL, sign, suites} = jsigs;
+const {Ed25519Signature2018} = suites;
 
 export class KmsService {
   constructor({
     urls = {
-      base: '/kms',
-      operations: '/kms/operations'
+      base: '/kms'
     }
   } = {}) {
     this.config = {urls};
@@ -22,24 +25,25 @@ export class KmsService {
    * Generates a new cryptographic key.
    *
    * @param {String} plugin the KMS plugin to use.
-   * @param {String} type the key type (e.g. 'AES-KW', 'HS256').
-   * @param {String} id an identifier to use for the key.
+   * @param {String} type the key type (e.g. 'AesKeyWrappingKey2019').
    * @param {Object} an API with an `id` property and a `sign` function for
    *   authentication purposes.
    *
    * @return {Promise<String>} the ID for the key.
    */
-  async generateKey({plugin, type, id, signer}) {
+  async generateKey({plugin, type, signer}) {
     _assert(plugin, 'plugin', 'string');
     _assert(type, 'type', 'string');
-    if(id !== undefined) {
-      _assert(id, 'id', 'string');
-    }
     _assert(signer, 'signer', 'object');
+    const baseUrl = `${window.location.origin}${this.config.urls.base}`;
+    const id = `${baseUrl}/${plugin}/${uuid()}`;
+
     const {id: newId} = await this._postOperation({
-      method: 'generateKey',
-      parameters: {type, id},
-      plugin,
+      url: id,
+      operation: {
+        type: 'GenerateKeyOperation',
+        invocationTarget: {id, type, controller: signer.id}
+      },
       signer
     });
     return newId;
@@ -48,23 +52,23 @@ export class KmsService {
   /**
    * Wraps a cryptographic key using a key encryption key (KEK).
    *
-   * @param {String} plugin the KMS plugin to use.
    * @param {Uint8Array} key the key material as a Uint8Array.
    * @param {String} kekId the ID of the wrapping key to use.
    * @param {Object} an API with a `sign` function for authentication purposes.
    *
    * @return {Promise<String>} the base64url-encoded wrapped key bytes.
    */
-  async wrapKey({plugin, key, kekId, signer}) {
-    _assert(plugin, 'plugin', 'string');
+  async wrapKey({key, kekId, signer}) {
     _assert(key, 'key', 'Uint8Array');
     _assert(kekId, 'kekId', 'string');
     _assert(signer, 'signer', 'object');
-    key = base64url.encode(key);
+    const unwrappedKey = base64url.encode(key);
     const {wrappedKey} = await this._postOperation({
-      method: 'wrapKey',
-      parameters: {key, kekId},
-      plugin,
+      url: kekId,
+      operation: {
+        type: 'WrapKeyOperation',
+        unwrappedKey
+      },
       signer
     });
     return wrappedKey;
@@ -73,7 +77,6 @@ export class KmsService {
   /**
    * Unwraps a cryptographic key using a key encryption key (KEK).
    *
-   * @param {String} plugin the KMS plugin to use.
    * @param {String} wrappedKey the wrapped key material as a base64url-encoded
    *   string.
    * @param {String} kekId the ID of the unwrapping key to use.
@@ -81,18 +84,19 @@ export class KmsService {
    *
    * @return {Promise<Uint8Array>} the key bytes.
    */
-  async unwrapKey({plugin, wrappedKey, kekId, signer}) {
-    _assert(plugin, 'plugin', 'string');
+  async unwrapKey({wrappedKey, kekId, signer}) {
     _assert(wrappedKey, 'wrappedKey', 'string');
     _assert(kekId, 'kekId', 'string');
     _assert(signer, 'signer', 'object');
-    const {key} = await this._postOperation({
-      method: 'unwrapKey',
-      parameters: {wrappedKey, kekId},
-      plugin,
+    const {unwrappedKey} = await this._postOperation({
+      url: kekId,
+      operation: {
+        type: 'UnwrapKeyOperation',
+        wrappedKey
+      },
       signer
     });
-    return base64url.decode(key);
+    return base64url.decode(unwrappedKey);
   }
 
   /**
@@ -101,7 +105,6 @@ export class KmsService {
    * hashing the data first may present interoperability issues so choose
    * wisely.
    *
-   * @param {String} plugin the KMS plugin to use.
    * @param {String} keyId the ID of the signing key to use.
    * @param {Uint8Array} data the data to sign as a Uint8Array.
    * @param {Object} an API with a `sign` function for authentication purposes;
@@ -109,19 +112,20 @@ export class KmsService {
    *
    * @return {Promise<String>} the base64url-encoded signature.
    */
-  async sign({plugin, keyId, data, signer}) {
-    _assert(plugin, 'plugin', 'string');
+  async sign({keyId, data, signer}) {
     _assert(keyId, 'keyId', 'string');
     _assert(data, 'data', 'Uint8Array');
     _assert(signer, 'signer', 'object');
     data = base64url.encode(data);
-    const {signature} = await this._postOperation({
-      method: 'sign',
-      parameters: {keyId, data},
-      plugin,
+    const {signatureValue} = await this._postOperation({
+      url: keyId,
+      operation: {
+        type: 'SignOperation',
+        verifyData: data
+      },
       signer
     });
-    return signature;
+    return signatureValue;
   }
 
   /**
@@ -130,7 +134,6 @@ export class KmsService {
    * hashing the data first may present interoperability issues so choose
    * wisely.
    *
-   * @param {String} plugin the KMS plugin to use.
    * @param {String} keyId the ID of the signing key to use.
    * @param {Uint8Array} data the data to sign as a Uint8Array.
    * @param {String} signature the base64url-encoded signature to verify.
@@ -138,17 +141,19 @@ export class KmsService {
    *
    * @return {Promise<Boolean>} `true` if verified, `false` if not.
    */
-  async verify({plugin, keyId, data, signature, signer}) {
-    _assert(plugin, 'plugin', 'string');
+  async verify({keyId, data, signature, signer}) {
     _assert(keyId, 'keyId', 'string');
     _assert(data, 'data', 'Uint8Array');
     _assert(signature, 'signature', 'string');
     _assert(signer, 'signer', 'object');
-    data = base64url.encode(data);
+    const verifyData = base64url.encode(data);
     const {verified} = await this._postOperation({
-      method: 'verify',
-      parameters: {keyId, data, signature},
-      plugin,
+      url: keyId,
+      operation: {
+        type: 'VerifyOperation',
+        verifyData,
+        signatureValue: signature
+      },
       signer
     });
     return verified;
@@ -157,59 +162,32 @@ export class KmsService {
   /**
    * Posts an operation to the KMS service.
    *
-   * @param {String} method the method to run (e.g. `generateKey`, `wrapKey`).
-   * @param {Object} parameters the parameter for the method.
-   * @param {String} plugin the KMS plugin to use.
+   * @param {String} url the URL to post to (i.e. the key identifier).
+   * @param {Object} operation the operation to run.
    * @param {Object} an API with a `sign` function for authentication purposes.
    *
-   * @return {Promise<Boolean>} true on success, false on failure.
+   * @return {Promise<Any>} resolves to the result of the operation.
    */
-  async _postOperation({method, parameters, plugin, signer}) {
-    const response = await this._signedAxios({
-      url: this.config.urls.operations,
+  async _postOperation({url, operation, signer}) {
+    // TODO: ensure `signer` uses an Ed25519 key
+
+    // attach capability invocation to operation
+    operation = {'@context': SECURITY_CONTEXT_V2_URL, ...operation};
+    const data = await sign(operation, {
+      suite: new Ed25519Signature2018({
+        signer,
+        verificationMethod: signer.id
+      }),
+      purpose: new CapabilityInvocation({capability: url})
+    });
+
+    // send operation
+    const response = await axios({
+      url,
       method: 'POST',
-      data: {
-        method,
-        parameters,
-        plugin
-      },
-      signer
+      data
     });
     return response.data;
-  }
-
-  async _signedAxios({signer, ...requestOptions}) {
-    if(!('headers' in requestOptions)) {
-      requestOptions.headers = {};
-    }
-    if(requestOptions.url.startsWith('/')) {
-      requestOptions.url = `${window.location.origin}${requestOptions.url}`;
-    }
-    requestOptions.headers.host = new URL(requestOptions.url).host;
-    await this._signHttp({signer, requestOptions});
-    // remove `host` header as it will be automatically set by the browser
-    delete requestOptions.headers.host;
-    return axios(requestOptions);
-  }
-
-  async _signHttp({signer, requestOptions}) {
-    // set expiration 10 minutes into the future
-    const expires = new Date(Date.now() + 600000).toUTCString();
-    requestOptions.headers.Expires = expires;
-
-    // sign header
-    const includeHeaders = ['expires', 'host', '(request-target)'];
-    const plaintext = createSignatureString({includeHeaders, requestOptions});
-    const data = new TextEncoder().encode(plaintext);
-    const signature = base64url.encode(await signer.sign({data}));
-
-    const authzHeader = createAuthzHeader({
-      includeHeaders,
-      keyId: signer.id,
-      signature
-    });
-
-    requestOptions.headers.Authorization = authzHeader;
   }
 }
 

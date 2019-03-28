@@ -12,17 +12,15 @@ export class Kek {
    *   authentication key for a KMS service.
    * @param {KmsService} kmsService the kmsService to use to perform key
    *   operations.
-   * @param {String} kmsPlugin the ID of the KMS plugin to use.
    *
    * @return {Kek}.
    */
-  constructor({id, signer, kmsService, kmsPlugin}) {
+  constructor({id, signer, kmsService}) {
     this.id = id;
     // TODO: support other algorithms
     this.algorithm = 'A256KW';
     this.signer = signer;
     this.kmsService = kmsService;
-    this.kmsPlugin = kmsPlugin;
   }
 
   /**
@@ -33,8 +31,8 @@ export class Kek {
    * @return {Promise<String>} the base64url-encoded wrapped key bytes.
    */
   async wrap({key}) {
-    const {id: kekId, kmsService, kmsPlugin: plugin, signer} = this;
-    return kmsService.wrapKey({plugin, key, kekId, signer});
+    const {id: kekId, kmsService, signer} = this;
+    return kmsService.wrapKey({key, kekId, signer});
   }
 
   /**
@@ -46,7 +44,7 @@ export class Kek {
    * @return {Promise<Uint8Array>} the key bytes.
    */
   async unwrap({wrappedKey}) {
-    const {id: kekId, kmsService, kmsPlugin: plugin, signer} = this;
-    return kmsService.unwrapKey({plugin, wrappedKey, kekId, signer});
+    const {id: kekId, kmsService, signer} = this;
+    return kmsService.unwrapKey({wrappedKey, kekId, signer});
   }
 }
