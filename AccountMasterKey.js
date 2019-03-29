@@ -58,7 +58,7 @@ export class AccountMasterKey {
     // other standardized key wrapping algorithm
     let Class;
     if(type === 'hmac') {
-      type = 'Sha256HmacKey';
+      type = 'Sha256HmacKey2019';
       Class = Hmac;
     } else if(type === 'kek') {
       type = 'AesKeyWrappingKey2019';
