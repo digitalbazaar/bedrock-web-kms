@@ -67,6 +67,7 @@ export class KmsService {
       url: kekId,
       operation: {
         type: 'WrapKeyOperation',
+        invocationTarget: kekId,
         unwrappedKey
       },
       signer
@@ -92,6 +93,7 @@ export class KmsService {
       url: kekId,
       operation: {
         type: 'UnwrapKeyOperation',
+        invocationTarget: kekId,
         wrappedKey
       },
       signer
@@ -121,6 +123,7 @@ export class KmsService {
       url: keyId,
       operation: {
         type: 'SignOperation',
+        invocationTarget: keyId,
         verifyData: data
       },
       signer
@@ -151,6 +154,7 @@ export class KmsService {
       url: keyId,
       operation: {
         type: 'VerifyOperation',
+        invocationTarget: keyId,
         verifyData,
         signatureValue: signature
       },
