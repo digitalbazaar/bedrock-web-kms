@@ -3,6 +3,9 @@
   "version": "2.0.1-0",
   "description": "Web app APIs for Bedrock Key Management",
   "main": "index.js",
+  "scripts": {
+    "lint": "eslint ."
+  },
   "dependencies": {
     "axios": "^0.18.0",
     "base64url-universal": "^1.0.0",
