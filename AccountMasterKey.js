@@ -8,6 +8,7 @@ const {Ed25519KeyPair} = cryptoLd;
 import {Kek} from './Kek.js';
 import {Hmac} from './Hmac.js';
 import {SeedCache} from './SeedCache.js';
+import {KmsService} from './KmsService.js';
 
 const VERSIONS = ['recommended', 'fips'];
 const _seedCache = new SeedCache();
@@ -158,16 +159,23 @@ export class AccountMasterKey {
    * @param {Object} options - The options to use.
    * @param {string} options.accountId - The ID of the account associated with
    *   this master key.
-   * @param {Object} options.kmsService - The kmsService to use to perform key
+   * @param {Object} [options.kmsService] - The kmsService to use to perform key
    *   operations.
    * @param {string} options.kmsPlugin - The ID of the KMS plugin to use.
+   * @param {string} [options.secret = null] - A secret used to generate a key.
    *
    * @returns {Promise<AccountMasterKey>} The new AccountMasterKey instance
    *   or `null` if no cached key for `accountId` could be loaded.
    */
-  static async fromCache({accountId, kmsService, kmsPlugin}) {
+  static async fromCache(
+    {accountId, kmsService = new KmsService(), kmsPlugin, secret = null}) {
     if(typeof localStorage === 'undefined') {
       return null;
+    }
+
+    if(secret !== null) {
+      return AccountMasterKey.fromSecret(
+        {secret, accountId, kmsService, kmsPlugin});
     }
 
     const seed = await _seedCache.get({accountId});
