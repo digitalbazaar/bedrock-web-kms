@@ -24,12 +24,13 @@ export class KmsService {
   /**
    * Generates a new cryptographic key.
    *
-   * @param {String} plugin the KMS plugin to use.
-   * @param {String} type the key type (e.g. 'AesKeyWrappingKey2019').
-   * @param {Object} an API with an `id` property and a `sign` function for
-   *   authentication purposes.
+   * @param {Object} options - The options to use.
+   * @param {string} options.plugin - The KMS plugin to use.
+   * @param {string} options.type - The key type (e.g. 'AesKeyWrappingKey2019').
+   * @param {Object} options.signer - An API with an `id` property and a `sign`
+   *   function for authentication purposes.
    *
-   * @return {Promise<String>} the ID for the key.
+   * @returns {Promise<string>} The ID for the key.
    */
   async generateKey({plugin, type, signer}) {
     _assert(plugin, 'plugin', 'string');
@@ -52,11 +53,13 @@ export class KmsService {
   /**
    * Wraps a cryptographic key using a key encryption key (KEK).
    *
-   * @param {Uint8Array} key the key material as a Uint8Array.
-   * @param {String} kekId the ID of the wrapping key to use.
-   * @param {Object} an API with a `sign` function for authentication purposes.
+   * @param {Object} options - The options to use.
+   * @param {Uint8Array} options.key - The key material as a Uint8Array.
+   * @param {string} options.kekId - The ID of the wrapping key to use.
+   * @param {Object} options.signer - An API with a `sign` function for
+   *   authentication purposes.
    *
-   * @return {Promise<String>} the base64url-encoded wrapped key bytes.
+   * @returns {Promise<string>} The base64url-encoded wrapped key bytes.
    */
   async wrapKey({key, kekId, signer}) {
     _assert(key, 'key', 'Uint8Array');
@@ -78,12 +81,14 @@ export class KmsService {
   /**
    * Unwraps a cryptographic key using a key encryption key (KEK).
    *
-   * @param {String} wrappedKey the wrapped key material as a base64url-encoded
-   *   string.
-   * @param {String} kekId the ID of the unwrapping key to use.
-   * @param {Object} an API with a `sign` function for authentication purposes.
+   * @param {Object} options - The options to use.
+   * @param {string} options.wrappedKey - The wrapped key material as a
+   *   base64url-encoded string.
+   * @param {string} options.kekId - The ID of the unwrapping key to use.
+   * @param {Object} options.signer - An API with a `sign` function for
+   *   authentication purposes.
    *
-   * @return {Promise<Uint8Array>} the key bytes.
+   * @returns {Promise<Uint8Array>} The key bytes.
    */
   async unwrapKey({wrappedKey, kekId, signer}) {
     _assert(wrappedKey, 'wrappedKey', 'string');
@@ -107,12 +112,13 @@ export class KmsService {
    * hashing the data first may present interoperability issues so choose
    * wisely.
    *
-   * @param {String} keyId the ID of the signing key to use.
-   * @param {Uint8Array} data the data to sign as a Uint8Array.
-   * @param {Object} an API with a `sign` function for authentication purposes;
-   *   this is not used to sign the data itself.
+   * @param {Object} options - The options to use.
+   * @param {string} options.keyId - The ID of the signing key to use.
+   * @param {Uint8Array} options.data - The data to sign as a Uint8Array.
+   * @param {Object} options.signer - An API with a `sign` function for
+   *   authentication purposes; this is not used to sign the data itself.
    *
-   * @return {Promise<String>} the base64url-encoded signature.
+   * @returns {Promise<string>} The base64url-encoded signature.
    */
   async sign({keyId, data, signer}) {
     _assert(keyId, 'keyId', 'string');
@@ -137,12 +143,15 @@ export class KmsService {
    * hashing the data first may present interoperability issues so choose
    * wisely.
    *
-   * @param {String} keyId the ID of the signing key to use.
-   * @param {Uint8Array} data the data to sign as a Uint8Array.
-   * @param {String} signature the base64url-encoded signature to verify.
-   * @param {Object} an API with a `sign` function for authentication purposes.
+   * @param {Object} options - The options to use.
+   * @param {string} options.keyId - The ID of the signing key to use.
+   * @param {Uint8Array} options.data - The data to sign as a Uint8Array.
+   * @param {string} options.signature - The base64url-encoded signature to
+   *   verify.
+   * @param {Object} options.signer - An API with a `sign` function for
+   *   authentication purposes.
    *
-   * @return {Promise<Boolean>} `true` if verified, `false` if not.
+   * @returns {Promise<boolean>} `true` if verified, `false` if not.
    */
   async verify({keyId, data, signature, signer}) {
     _assert(keyId, 'keyId', 'string');
@@ -166,11 +175,13 @@ export class KmsService {
   /**
    * Posts an operation to the KMS service.
    *
-   * @param {String} url the URL to post to (i.e. the key identifier).
-   * @param {Object} operation the operation to run.
-   * @param {Object} an API with a `sign` function for authentication purposes.
+   * @param {Object} options - The options to use.
+   * @param {string} options.url - The URL to post to, such as a key identifier.
+   * @param {Object} options.operation - The operation to run.
+   * @param {Object} options.signer - An API with a `sign` function for
+   *   authentication purposes.
    *
-   * @return {Promise<Any>} resolves to the result of the operation.
+   * @returns {Promise<Object>} Resolves to the result of the operation.
    */
   async _postOperation({url, operation, signer}) {
     // TODO: ensure `signer` uses an Ed25519 key

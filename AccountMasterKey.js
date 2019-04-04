@@ -16,22 +16,24 @@ export class AccountMasterKey {
   /**
    * Creates a new instance of an AccountMasterKey. This function should never
    * be called directly. Use one of these methods to create an AccountMasterKey
-   * instance:
+   * instance.
    *
-   * `AccountMasterKey.fromSecret`
-   * `AccountMasterKey.fromCache`
-   * `AccountMasterKey.fromBiometric`
-   * `AccountMasterKey.fromFido`
+   * @example
+   * AccountMasterKey.fromSecret();
+   * AccountMasterKey.fromCache();
+   * AccountMasterKey.fromBiometric();
+   * AccountMasterKey.fromFido();
    *
-   * @param {String} accountId the ID of the account associated with this
-   *   master key.
-   * @param {Object} signer an API for creating digital signatures using the
-   *   master authentication key.
-   * @param {KmsService} kmsService the kmsService to use to perform key
-   *   operations.
-   * @param {String} kmsPlugin the ID of the KMS plugin to use.
+   * @param {Object} options - The options to use.
+   * @param {string} options.accountId - The ID of the account associated with
+   *   this master key.
+   * @param {Object} options.signer - An API for creating digital signatures
+   *   using the master authentication key.
+   * @param {Object} options.kmsService - The kmsService to use to perform
+   *   key operations.
+   * @param {string} options.kmsPlugin - The ID of the KMS plugin to use.
    *
-   * @return {AccountMasterKey}.
+   * @returns {AccountMasterKey} Key information.
    */
   constructor({accountId, signer, kmsService, kmsPlugin}) {
     this.accountId = accountId;
@@ -45,11 +47,13 @@ export class AccountMasterKey {
    * key. It can be generated using a FIPS-compliant algorithm or the latest
    * recommended algorithm.
    *
-   * @param {String} type the type of key to create (`hmac` or `kek`).
-   * @param {String} version `fips` to use FIPS-compliant ciphers,
-   *   `recommended` to use the latest recommended ciphers.
+   * @param {Object} options - The options to use.
+   * @param {string} options.type - The type of key to create (`hmac` or `kek`).
+   * @param {string} [options.version=recommended] - `fips` to
+   *   use FIPS-compliant ciphers, `recommended` to use the latest recommended
+   *   ciphers.
    *
-   * @return {Promise<Object>} resolves to a Kek or Hmac instance.
+   * @returns {Promise<Object>} A Kek or Hmac instance.
    */
   async generateKey({type, version = 'recommended'}) {
     _assertVersion(version);
@@ -73,13 +77,14 @@ export class AccountMasterKey {
   }
 
   /**
-   * Gets a KEK API for wrapping and unwrapping cryptographic keys. The key
-   * ID is presumed to be scoped to the KMS service and plugin assigned
+   * Gets a KEK API for wrapping and unwrapping cryptographic keys. The key ID
+   * is presumed to be scoped to the KMS service and plugin assigned
    * to this account master key instance.
    *
-   * @param {String} id the ID of the KEK.
+   * @param {Object} options - The options to use.
+   * @param {string} options.id - The ID of the KEK.
    *
-   * @return {Promise<Kek>} the new Kek instance.
+   * @returns {Promise<Object>} The new Kek instance.
    */
   async getKek({id}) {
     const {kmsService, signer} = this;
@@ -88,13 +93,14 @@ export class AccountMasterKey {
   }
 
   /**
-   * Gets an HMAC API for signing and verifying cryptographic keys. The key
-   * ID is presumed to be scoped to the KMS service and plugin assigned
+   * Gets an HMAC API for signing and verifying cryptographic keys. The key ID
+   * is presumed to be scoped to the KMS service and plugin assigned
    * to this account master key instance.
    *
-   * @param {String} id the ID of the HMAC key.
+   * @param {Object} options - The options to use.
+   * @param {string} options.id - The ID of the HMAC key.
    *
-   * @return {Promise<Hmac>} the new Hmac instance.
+   * @returns {Promise<Object>} The new Hmac instance.
    */
   async getHmac({id}) {
     const {kmsService, signer} = this;
@@ -105,17 +111,19 @@ export class AccountMasterKey {
   /**
    * Generates a master key from a secret.
    *
-   * @param {String|Uint8Array} secret the secret to use (e.g. a bcrypt hash).
-   * @param {String} accountId the ID of the account associated with this
-   *   master key.
-   * @param {KmsService} kmsService the kmsService to use to perform key
-   *   operations.
-   * @param {String} kmsPlugin the ID of the KMS plugin to use.
-   * @param {boolean} [cache=true] `true` to cache the key, `false` not to; a
-   *   cached key must be cleared via `clearCache` or it will persist until
-   *   the user clears their local website storage.
+   * @param {Object} options - The options to use.
+   * @param {string|Uint8Array} options.secret - The secret to use, such as a
+   *   bcrypt hash.
+   * @param {string} options.accountId - The ID of the account associated
+   *   with this master key.
+   * @param {Object} options.kmsService - The kmsService to use to
+   *   perform key operations.
+   * @param {string} options.kmsPlugin - The ID of the KMS plugin to use.
+   * @param {boolean} [options.cache=true] - Use `true` to cache the key,
+   *   `false` not to; a cached key must be cleared via `clearCache` or it will
+   *   persist until the user clears their local website storage.
    *
-   * @return {Promise<AccountMasterKey>} the new AccountMasterKey instance.
+   * @returns {Promise<AccountMasterKey>} The new AccountMasterKey instance.
    */
   static async fromSecret(
     {secret, accountId, kmsService, kmsPlugin, cache = true}) {
@@ -147,13 +155,14 @@ export class AccountMasterKey {
    * cached. To clear this master key to prevent future loading, call
    * `clearCache` with the account ID.
    *
-   * @param {String} accountId the ID of the account associated with this
-   *   master key.
-   * @param {KmsService} kmsService the kmsService to use to perform key
+   * @param {Object} options - The options to use.
+   * @param {string} options.accountId - The ID of the account associated with
+   *   this master key.
+   * @param {Object} options.kmsService - The kmsService to use to perform key
    *   operations.
-   * @param {String} kmsPlugin the ID of the KMS plugin to use.
+   * @param {string} options.kmsPlugin - The ID of the KMS plugin to use.
    *
-   * @return {Promise<AccountMasterKey|null>} the new AccountMasterKey instance
+   * @returns {Promise<AccountMasterKey>} The new AccountMasterKey instance
    *   or `null` if no cached key for `accountId` could be loaded.
    */
   static async fromCache({accountId, kmsService, kmsPlugin}) {
@@ -183,10 +192,11 @@ export class AccountMasterKey {
    * via `fromSecret` with `cache` set to `true` in order to ensure the key
    * cannot be loaded via `fromCache`.
    *
-   * @param {String} accountId the ID of the account associated with this
-   *   master key.
+   * @param {Object} options - The options to use.
+   * @param {string} options.accountId - The ID of the account associated
+   *   with this master key.
    *
-   * @return {Promise<undefined>} resolves once the operation completes.
+   * @returns {Promise<undefined>} On completion.
    */
   static async clearCache({accountId}) {
     await _seedCache.remove({accountId});

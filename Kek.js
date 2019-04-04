@@ -7,13 +7,14 @@ export class Kek {
   /**
    * Creates a new instance of a key encryption key.
    *
-   * @param {String} id the ID of this key.
-   * @param {Object} signer an API for creating digital signatures using an
-   *   authentication key for a KMS service.
-   * @param {KmsService} kmsService the kmsService to use to perform key
+   * @param {Object} options - The options to use.
+   * @param {string} options.id - The ID of this key.
+   * @param {Object} options.signer - An API for creating digital signatures
+   *   using an authentication key for a KMS service.
+   * @param {Object} options.kmsService - The kmsService to use to perform key
    *   operations.
    *
-   * @return {Kek}.
+   * @returns {Kek} The new Kek instance.
    */
   constructor({id, signer, kmsService}) {
     this.id = id;
@@ -26,9 +27,10 @@ export class Kek {
   /**
    * Wraps a cryptographic key.
    *
-   * @param {Uint8Array} key the key material as a Uint8Array.
+   * @param {Object} options - The options to use.
+   * @param {Uint8Array} options.key - The key material as a Uint8Array.
    *
-   * @return {Promise<String>} the base64url-encoded wrapped key bytes.
+   * @returns {Promise<string>} The base64url-encoded wrapped key bytes.
    */
   async wrap({key}) {
     const {id: kekId, kmsService, signer} = this;
@@ -38,10 +40,11 @@ export class Kek {
   /**
    * Unwraps a cryptographic key.
    *
-   * @param {String} wrappedKey the wrapped key material as a base64url-encoded
-   *   string.
+   * @param {Object} options - The options to use.
+   * @param {string} options.wrappedKey - The wrapped key material as a
+   *   base64url-encoded string.
    *
-   * @return {Promise<Uint8Array>} the key bytes.
+   * @returns {Promise<Uint8Array>} The key bytes.
    */
   async unwrap({wrappedKey}) {
     const {id: kekId, kmsService, signer} = this;

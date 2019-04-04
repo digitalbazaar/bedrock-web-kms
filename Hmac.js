@@ -7,13 +7,14 @@ export class Hmac {
   /**
    * Creates a new instance of an HMAC.
    *
-   * @param {String} id the ID of the hmac key.
-   * @param {Object} signer an API for creating digital signatures using an
-   *   authentication key for a KMS service.
-   * @param {KmsService} kmsService the kmsService to use to perform key
-   *   operations.
+   * @param {Object} options - The options to use.
+   * @param {string} options.id - The ID of the hmac key.
+   * @param {Object} options.signer - An API for creating digital signatures
+   *   using an authentication key for a KMS service.
+   * @param {Object} options.kmsService - The kmsService to use to
+   *   perform key operations.
    *
-   * @return {Hmac}.
+   * @returns {Hmac} The new Hmac instance.
    */
   constructor({id, signer, kmsService}) {
     this.id = id;
@@ -29,9 +30,10 @@ export class Hmac {
    * hashing the data first may present interoperability issues so choose
    * wisely.
    *
-   * @param {Uint8Array} data the data to sign as a Uint8Array.
+   * @param {Object} options - The options to use.
+   * @param {Uint8Array} options.data - The data to sign as a Uint8Array.
    *
-   * @return {Promise<String>} the base64url-encoded signature.
+   * @returns {Promise<string>} The base64url-encoded signature.
    */
   async sign({data}) {
     const {id: keyId, kmsService, signer} = this;
@@ -44,10 +46,12 @@ export class Hmac {
    * hashing the data first may present interoperability issues so choose
    * wisely.
    *
-   * @param {Uint8Array} data the data to sign as a Uint8Array.
-   * @param {String} signature the base64url-encoded signature to verify.
+   * @param {Object} options - The options to use.
+   * @param {Uint8Array} options.data - The data to sign as a Uint8Array.
+   * @param {string} options.signature - The base64url-encoded signature
+   *   to verify.
    *
-   * @return {Promise<Boolean>} `true` if verified, `false` if not.
+   * @returns {Promise<boolean>} `true` if verified, `false` if not.
    */
   async verify({data, signature}) {
     const {id: keyId, kmsService, signer} = this;
